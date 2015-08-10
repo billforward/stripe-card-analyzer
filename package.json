@@ -9,6 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "harmonize": "^1.4.4",
+    "line-reader": "^0.2.4",
+    "lodash": "^3.10.1",
     "stripe": "^3.7.0"
   }
 }
