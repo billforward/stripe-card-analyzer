@@ -5,6 +5,8 @@ var configNominal = require('./config/config.example');
 var configBespoke = require('./config/config');
 var config = _.extend({}, configNominal, configBespoke);
 
+var FastSet = require("collections/fast-set");
+
 var util = require('util');
 
 var Promise = require('bluebird');
@@ -15,6 +17,8 @@ stripe.setApiVersion('2015-07-13');
 var lineReader = require('line-reader');
 
 var outgoingPromises = [];
+
+var servicedCustomers = new FastSet();
 
 function induce(callback) {
 	callback(config.readAllLines || ++linesRead < config.linesToRead);
@@ -73,6 +77,11 @@ if (fs.statSync(config.outputFile)) {
 var linesRead = 0;
 lineReader.eachLine(config.inputFile, function eachLine(line, last, callback) {
 	var customerID = line;
+	if (servicedCustomers.has(customerID)) {
+		return callback(true);
+	}
+	servicedCustomers.add(customerID);
+
 	console.log(util.format("Requesting cards for customer '%s'…", customerID));
 	outgoingPromises.push(stripe.customers.listCards(customerID)
 		// .then(function(result) {
@@ -90,10 +99,9 @@ lineReader.eachLine(config.inputFile, function eachLine(line, last, callback) {
 	})
 		);
 	if (outgoingPromises.length >= config.promiseBatchSize) {
-		reducePromiseBuffer(callback);
-	} else {
-		induce(callback);
+		return reducePromiseBuffer(callback);
 	}
+	return induce(callback);
 })
 .then(function allLinesDone() {
 	reducePromiseBuffer(function() {});
