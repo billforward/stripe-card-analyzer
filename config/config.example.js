@@ -4,5 +4,13 @@ module.exports = {
 	inputFile: './input/input.csv',
 	outputFile: './output/output.csv',
 	linesToRead: 1,
-	readAllLines: false
+	readAllLines: true,
+	promiseBatchSize: 10,
+	lineDelimiter: '\n',
+	columnDelimiter: ',',
+	// queryRecordLimit: 10,
+	cardFields: ["customer", "id", "brand", "funding"],
+	sanitizer: function(string) {
+		return string;
+	}
 };

@@ -1,3 +1,4 @@
 node_modules
 config/config.js
 input/input.csv
+output/output.csv

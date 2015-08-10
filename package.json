@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^2.9.34",
     "harmonize": "^1.4.4",
     "line-reader": "^0.2.4",
     "lodash": "^3.10.1",
