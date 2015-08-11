@@ -28,7 +28,10 @@ function reducePromiseBuffer(callback) {
 	Promise.all(outgoingPromises)
 	.then(function(tuples) {
 		console.log("Serializing batch…");
-		var mappedResults = _.map(tuples, function(tuple) {
+		var mappedResults = _.filter(_.map(tuples, function(tuple) {
+			if (!tuple.success) {
+				return "";
+			}
 			var result = tuple.result;
 			var cardsSet = result.data;
 			var customerID = tuple.customerID;
@@ -54,6 +57,8 @@ function reducePromiseBuffer(callback) {
 				return accumulator.concat(serializedIterand);
 			}, []);
 			return cardStrings.join(config.lineDelimiter);
+		}), function(entry) {
+			return entry !== "";
 		});
 		var fileAppend = mappedResults.join(config.lineDelimiter)+config.lineDelimiter;
 		fs.appendFile(config.outputFile, fileAppend, function (err) {
@@ -70,10 +75,6 @@ if (fs.statSync(config.outputFile)) {
 	fs.truncateSync(config.outputFile);
 }
 
-// function withNextPage(id, cursor) {
-
-// }
-
 var linesRead = 0;
 lineReader.eachLine(config.inputFile, function eachLine(line, last, callback) {
 	var customerID = line;
@@ -84,19 +85,19 @@ lineReader.eachLine(config.inputFile, function eachLine(line, last, callback) {
 
 	console.log(util.format("Requesting cards for customer '%s'…", customerID));
 	outgoingPromises.push(stripe.customers.listCards(customerID)
-		// .then(function(result) {
-		// 	console.log(result);
-		// 	if (result.has_more) {
-		// 		return result.concat
-		// 	}
-		// 	return result;
-		// })
-	.then(function(result) {
-		return {
-			result: result,
-			customerID: customerID
-		};
-	})
+		.then(function(result) {
+			return {
+				success: true
+				result: result,
+				customerID: customerID
+			};
+		})
+		.catch(function(err) {
+			console.warn(util.format("Error whilst fetching cards for customer '%s'. Error was: %s", customerID, err));
+			return {
+				success: false
+			}
+		})
 		);
 	if (outgoingPromises.length >= config.promiseBatchSize) {
 		return reducePromiseBuffer(callback);
@@ -106,20 +107,3 @@ lineReader.eachLine(config.inputFile, function eachLine(line, last, callback) {
 .then(function allLinesDone() {
 	reducePromiseBuffer(function() {});
 });
-
-// stripe.accounts.listExternalAccounts(
-// 	config.stripeManagedAccount,
-// 	{
-// 		object: "card"
-// 	})
-// 	.then(console.log);
-
-// stripe.accounts.list()
-// .then(console.log);
-
-// stripe.customers.list()
-// .then(console.log);
-
-// stripe.accounts.retrieve(
-//   config.stripeManagedAccount)
-// .then(console.log);
