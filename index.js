@@ -28,10 +28,11 @@ function reducePromiseBuffer(callback) {
 	Promise.all(outgoingPromises)
 	.then(function(tuples) {
 		console.log("Serializing batch…");
-		var mappedResults = _.filter(_.map(tuples, function(tuple) {
-			if (!tuple.success) {
-				return "";
-			}
+		var mappedResults = _.map(_.where(tuples,
+			{
+				success: true
+			}),
+		function(tuple) {
 			var result = tuple.result;
 			var cardsSet = result.data;
 			var customerID = tuple.customerID;
@@ -57,8 +58,6 @@ function reducePromiseBuffer(callback) {
 				return accumulator.concat(serializedIterand);
 			}, []);
 			return cardStrings.join(config.lineDelimiter);
-		}), function(entry) {
-			return entry !== "";
 		});
 		var fileAppend = mappedResults.join(config.lineDelimiter)+config.lineDelimiter;
 		fs.appendFile(config.outputFile, fileAppend, function (err) {
@@ -87,7 +86,7 @@ lineReader.eachLine(config.inputFile, function eachLine(line, last, callback) {
 	outgoingPromises.push(stripe.customers.listCards(customerID)
 		.then(function(result) {
 			return {
-				success: true
+				success: true,
 				result: result,
 				customerID: customerID
 			};
